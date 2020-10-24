@@ -15,13 +15,6 @@ set(CMAKE_CXX_FLAGS -Wno-deprecated-declarations)
 # Search path for CMake include files.
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 
-set(JSONCPP_WITH_TESTS OFF CACHE BOOL "")
-add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/external_libs/jsoncpp EXCLUDE_FROM_ALL)
-set_property(TARGET jsoncpp_lib PROPERTY POSITION_INDEPENDENT_CODE ON)
-set(JSONCPP_INCLUDE_DIRS
-		"${CMAKE_CURRENT_SOURCE_DIR}/external_libs/jsoncpp/include")
-set(JSONCPP_LIBRARIES jsoncpp_lib)
-
 option(ENABLE_TESTING "Build mbed TLS tests." OFF)
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/external_libs/mbedtls EXCLUDE_FROM_ALL)
 
@@ -58,9 +51,11 @@ set(MBEDTLS_LIBRARIES "${MBEDTLS_LIBRARY}" "${MBEDX509_LIBRARY}" "${MBEDCRYPTO_L
 
 option(BUILD_CURL_EXE "" OFF)
 option(BUILD_SHARED_LIBS "" OFF)
+option(BUILD_STATIC_LIBS "" ON)
 option(BUILD_TESTING "" OFF)
 option(CMAKE_USE_MBEDTLS "Enable mbedTLS for SSL/TLS" ON)
 option(CMAKE_USE_OPENSSL "Enable openSLL for SSL/TLS" OFF)
+option(CURL_STATICLIB "" ON)
 
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/external_libs/curl EXCLUDE_FROM_ALL)
 set_property(TARGET libcurl PROPERTY POSITION_INDEPENDENT_CODE ON)
@@ -93,6 +88,13 @@ set(LIBWEBSOCKETS_LIBRARIES websockets)
 set(LIBWEBSOCKETS_INCLUDE_DIRS
 		"${CMAKE_CURRENT_SOURCE_DIR}/external_libs/libwebsockets/include"
 		"${CMAKE_CURRENT_BINARY_DIR}/external_libs/libwebsockets")
+
+set(JSONCPP_WITH_TESTS OFF CACHE BOOL "")
+add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/external_libs/jsoncpp EXCLUDE_FROM_ALL)
+set_property(TARGET jsoncpp_static PROPERTY POSITION_INDEPENDENT_CODE ON)
+set(JSONCPP_INCLUDE_DIRS
+		"${CMAKE_CURRENT_SOURCE_DIR}/external_libs/jsoncpp/include")
+set(JSONCPP_LIBRARIES jsoncpp_static)
 
 file(GLOB_RECURSE LIBRARY_SRC "src/*.cpp" "include/*.h")
 

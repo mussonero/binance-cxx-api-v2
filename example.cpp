@@ -110,6 +110,28 @@ int main()
 	Logger::set_debug_level(1);
 	Logger::set_debug_logfp(stderr);
 
+	Json::Value result;
+
+	Server server;
+
+	Market market(server);
+
+	// Klines / CandleStick
+	BINANCE_ERR_CHECK(market.getKlines(result, "POEBTC", "1h", 0, 0, 10));
+	map<long, map<string, double> > klinesCache;
+	for (Json::Value::ArrayIndex i = 0 ; i < result.size() ; i++)
+	{
+
+		long start_of_candle = result[i][0].asInt64();
+		klinesCache[start_of_candle]["o"] = atof(result[i][1].asString().c_str());
+		klinesCache[start_of_candle]["h"] = atof(result[i][2].asString().c_str());
+		klinesCache[start_of_candle]["l"] = atof(result[i][3].asString().c_str());
+		klinesCache[start_of_candle]["c"] = atof(result[i][4].asString().c_str());
+		klinesCache[start_of_candle]["v"] = atof(result[i][5].asString().c_str());
+	}
+
+	print_klinesCache(klinesCache);
+
 	{
 		Websocket::init();
 		sleep (1);
