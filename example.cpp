@@ -117,7 +117,7 @@ int main()
 	Market market(server);
 
 	// Klines / CandleStick
-	BINANCE_ERR_CHECK(market.getKlines(result, "POEBTC", "1h", 0, 0, 10));
+	BINANCE_ERR_CHECK(market.getKlines(result, "BNBUSDT", "1w", 0, 0, 10));
 	map<long, map<string, double> > klinesCache;
 	for (Json::Value::ArrayIndex i = 0 ; i < result.size() ; i++)
 	{
@@ -132,14 +132,14 @@ int main()
 
 	print_klinesCache(klinesCache);
 
-	{
+	while (true){
 		Websocket::init();
 		sleep (1);
-		Websocket::connect_endpoint(ws_klines_onData, "/ws/poebtc@depth5@1000ms");
-		Websocket::connect_endpoint(ws_klines_onData, "/ws/batbtc@depth5@1000ms");
-		Websocket::connect_endpoint(ws_klines_onData, "/ws/xtzusdt@depth5@1000ms");
-		Websocket::connect_endpoint(ws_klines_onData, "/ws/bnbusdt@depth5@1000ms");
-		Websocket::connect_endpoint(ws_klines_onData, "/ws/algobnb@depth5@1000ms");
+		Websocket::connect_endpoint(ws_klines_onData, "/ws/poebtc@depth20@1000ms");
+		Websocket::connect_endpoint(ws_klines_onData, "/ws/batbtc@depth20@1000ms");
+		Websocket::connect_endpoint(ws_klines_onData, "/ws/xtzusdt@depth20@1000ms");
+		Websocket::connect_endpoint(ws_klines_onData, "/ws/bnbusdt@depth20@1000ms");
+		Websocket::connect_endpoint(ws_klines_onData, "/ws/algobnb@depth20@1000ms");
 
 		Websocket::connect_endpoint(ws_klines_onData, "/ws/poebtc@kline_1m");
 		Websocket::connect_endpoint(ws_klines_onData, "/ws/batbtc@kline_1m");
@@ -147,22 +147,22 @@ int main()
 		Websocket::connect_endpoint(ws_klines_onData, "/ws/bnbusdt@kline_1m");
 		Websocket::connect_endpoint(ws_klines_onData, "/ws/algobnb@kline_1m");
 
-		Websocket::connect_endpoint(ws_klines_onData, "/ws/xtzbtc@depth5@1000ms");
+		Websocket::connect_endpoint(ws_klines_onData, "/ws/xtzbtc@depth20@1000ms");
 		Websocket::connect_endpoint(ws_klines_onData, "/ws/xtzbtc@miniTicker");
 
-		Websocket::connect_endpoint(ws_klines_onData, "/ws/xrpbtc@depth5@1000ms");
+		Websocket::connect_endpoint(ws_klines_onData, "/ws/xrpbtc@depth20@1000ms");
 		Websocket::connect_endpoint(ws_klines_onData, "/ws/xrpbtc@miniTicker");
 
-		Websocket::connect_endpoint(ws_klines_onData, "/ws/eosusdt@depth5@1000ms");
+		Websocket::connect_endpoint(ws_klines_onData, "/ws/eosusdt@depth20@1000ms");
 		Websocket::connect_endpoint(ws_klines_onData, "/ws/eosusdt@miniTicker");
 
-		Websocket::connect_endpoint(ws_klines_onData, "/ws/algousdt@depth5@1000ms");
+		Websocket::connect_endpoint(ws_klines_onData, "/ws/algousdt@depth20@1000ms");
 		Websocket::connect_endpoint(ws_klines_onData, "/ws/algousdt@miniTicker");
 
-		Websocket::connect_endpoint(ws_klines_onData, "/ws/xrpbnb@depth5@1000ms");
+		Websocket::connect_endpoint(ws_klines_onData, "/ws/xrpbnb@depth20@1000ms");
 		Websocket::connect_endpoint(ws_klines_onData, "/ws/xrpbnb@miniTicker");
 
-		Websocket::connect_endpoint(ws_klines_onData, "/ws/ethusdt@depth5@1000ms");
+		Websocket::connect_endpoint(ws_klines_onData, "/ws/ethusdt@depth20@1000ms");
 		Websocket::connect_endpoint(ws_klines_onData, "/ws/ethusdt@miniTicker");
 
 
