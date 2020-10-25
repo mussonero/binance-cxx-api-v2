@@ -12,9 +12,6 @@
 using namespace binance;
 using namespace std;
 
-
-#define COUNT_THREADS 20
-
 void print_depthCache(map < string, map <double,double> >  depthCache) {
 
 	map < string, map <double,double> >::iterator it_i;
@@ -62,7 +59,7 @@ int ws_klines_onData(Json::Value& json_result)
 {
 	map<long, map<string, double> > klinesCache;
 	map < string, map <double,double> >  depthCache;
-	//cout << json_result << endl;
+
 	if (json_result["lastUpdateId"].isNumeric() && json_result["bids"].isArray() &&  json_result["asks"].isArray()) {
 		int i;
 
@@ -167,7 +164,7 @@ int main()
 
 
 		Websocket::enter_event_loop();
-		cout << "exit lopppppppppppp" << endl;
+		cout << "error exiting enter_event_loop and we will try again after 5sec" << endl;
 		sleep(5);
 	}
 

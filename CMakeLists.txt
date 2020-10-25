@@ -10,8 +10,6 @@ set(CMAKE_CXX_STANDARD 11)
 
 add_definitions(-DCMAKE_BUILD_TYPE=RELEASE -DCMAKE_DEBUG_POSTFIX -DNDEBUG)
 
-set(CMAKE_CXX_FLAGS -Wno-deprecated-declarations)
-
 # Search path for CMake include files.
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 
@@ -109,3 +107,7 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include)
 add_executable(example example.cpp)
 target_include_directories(example PRIVATE "${JSONCPP_INCLUDE_DIRS}")
 target_link_libraries(example ${PROJECT_NAME})
+
+add_executable(httpPerformanceTest httpPerformanceTest.cpp)
+target_include_directories(httpPerformanceTest PRIVATE "${JSONCPP_INCLUDE_DIRS}")
+target_link_libraries(httpPerformanceTest ${PROJECT_NAME})
