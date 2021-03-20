@@ -68,7 +68,14 @@ binanceError_t binance::Market::getExchangeInfoLocaly(Json::Value &json_result)
 
     Logger::write_log("<getExchangeInfoLocaly>");
 
-    std::ifstream jsonFile("exchnageinfo.json");
+    std::ifstream jsonFile;
+
+    jsonFile.open("exchnageinfo.json");
+
+    if(!jsonFile.is_open()){
+      return getExchangeInfo(json_result);
+    }
+
     std::string str_result;
 
     jsonFile.seekg(0, std::ios::end);
@@ -93,6 +100,7 @@ binanceError_t binance::Market::getExchangeInfoLocaly(Json::Value &json_result)
 							   &err)) {
 				Logger::write_log("<getExchangeInfoLocaly> Error ! %s", err.c_str());
 				status = binanceErrorParsingServerResponse;
+                jsonFile.close();
 				return status;
 			}
 			CHECK_SERVER_ERR(json_result);
@@ -105,6 +113,8 @@ binanceError_t binance::Market::getExchangeInfoLocaly(Json::Value &json_result)
     }
 
     Logger::write_log("<getExchangeInfoLocaly> Done.");
+
+    jsonFile.close();
 
     return status;
 }
@@ -124,7 +134,6 @@ binanceError_t binance::Market::getLotSize(const char *symbol, double& maxQty, d
 	Json::Value exchangeInfo;
 	string str_symbol = string_toupper(symbol);
 	binanceError_t status = getExchangeInfoLocaly(exchangeInfo);
-	CHECK_SERVER_ERR(exchangeInfo);
 
 	if (status == binanceSuccess)
 	{
@@ -798,21 +807,23 @@ binanceError_t binance::Market::getKlines(Json::Value &json_result, const char *
 	querystring.append("&interval=");
 	querystring.append(interval);
 
-	if (startTime > 0 && endTime > 0)
+	if (startTime > 0)
 	{
 		querystring.append("&startTime=");
 		querystring.append(to_string(startTime));
-
-		querystring.append("&endTime=");
-		querystring.append(to_string(endTime));
-
 	}
+
+    if (endTime > 0)
+    {
+      querystring.append("&endTime=");
+      querystring.append(to_string(endTime));
+    }
 
 	querystring.append("&limit=");
 	querystring.append(to_string(limit));
 
 	url.append(querystring);
-	Logger::write_log("<get_klines> url = |%s|", url.c_str());
+	Logger::write_log("<get_klines> url.. = |%s|", url.c_str());
 
 	string str_result;
 	Server::getCurl(str_result, url);

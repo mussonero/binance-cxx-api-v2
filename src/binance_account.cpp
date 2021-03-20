@@ -720,7 +720,7 @@ binanceError_t binance::Account::sendOrder(Json::Value &json_result, const char 
 			post_data.append(toString(icebergQty));
 		}
 
-        if(type != "MARKET"){
+        if(strncmp("MARKET", type, sizeof("MARKET")) != 0){
           post_data.append("&newOrderRespType=");
           post_data.append("RESULT");
         }
