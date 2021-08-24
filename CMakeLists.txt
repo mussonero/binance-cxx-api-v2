@@ -108,6 +108,10 @@ add_executable(example example.cpp)
 target_include_directories(example PRIVATE "${JSONCPP_INCLUDE_DIRS}")
 target_link_libraries(example ${PROJECT_NAME})
 
+add_executable(exampleTEST exampleTEST.cpp)
+target_include_directories(exampleTEST PRIVATE "${JSONCPP_INCLUDE_DIRS}")
+target_link_libraries(exampleTEST ${PROJECT_NAME})
+
 add_executable(httpPerformanceTest httpPerformanceTest.cpp)
 target_include_directories(httpPerformanceTest PRIVATE "${JSONCPP_INCLUDE_DIRS}")
 target_link_libraries(httpPerformanceTest ${PROJECT_NAME})
