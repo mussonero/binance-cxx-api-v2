@@ -118,7 +118,7 @@ namespace binance
 		return out.str();
 	}
 
-	std::string toString(double val);
+	std::string toString(double val, int prec = 8);
 
 	class Server
 	{
@@ -173,6 +173,7 @@ namespace binance
 		binanceError_t getExchangeInfoLocaly(Json::Value &json_result);
 		binanceError_t getLotSize(const char *symbol, double& maxQty, double& minQty, double& stepSize);
 		binanceError_t getTickSize(const char *symbol, double& maxQty, double& minQty, double& stepSize);
+        binanceError_t getBaseAsset(const char *symbol, std::string& baseAsset, int& baseAssetPrecision, int& baseCommissionPrecision);
 		binanceError_t getMinNotional(const char *symbol, double& minNotional);
 	};
 
@@ -212,7 +213,7 @@ namespace binance
 
 		binanceError_t sendOrder(Json::Value &json_result, const char *symbol, const char *side, const char *type,
 			const char *timeInForce, double quantity, double price, const char *newClientOrderId, double stopPrice,
-			double icebergQty, long recvWindow);
+			double icebergQty, long recvWindow, int baseAssetPrecision = 8);
 
 		binanceError_t sendTestOrder(Json::Value &json_result, const char *symbol, const char *side, const char *type,
 			const char *timeInForce, double quantity, double price, const char *newClientOrderId, double stopPrice,

@@ -151,6 +151,11 @@ void * Thread_2(void * id) {
   Websocket::connect_endpoint(ws_klines_onData, "/ws/ethusdt@miniTicker");
 
   sleep(20);
+  cout << "reconnect path /ws/bnbusdt@miniTicker" << endl;
+  sleep(1);
+  Websocket::reconnect_path("/ws/bnbusdt@miniTicker");
+
+  sleep(20);
   cout << "remove /ws/bnbusdt@miniTicker" << endl;
   sleep(1);
   Websocket::disconnect_endpoint("/ws/bnbusdt@miniTicker");
@@ -169,6 +174,11 @@ void * Thread_2(void * id) {
   cout << "remove /ws/xrpbtc@miniTicker ??" << endl;
   sleep(1);
   Websocket::disconnect_endpoint("/ws/xrpbtc@miniTicker");
+
+  sleep(10);
+  cout << "reconnect path /ws/algobnb@depth20@1000ms before enter_event_loop" << endl;
+  sleep(1);
+  Websocket::reconnect_path("/ws/algobnb@depth20@1000ms");
 
   sleep(10);
   cout << "remove /ws/algobnb@depth20@1000ms before enter_event_loop" << endl;

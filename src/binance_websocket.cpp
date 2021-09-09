@@ -12,6 +12,7 @@
 #include <libwebsockets.h>
 #include <map>
 #include <csignal>
+#include <assert.h>
 //#include <cassert>
 //#include <iostream>
 
@@ -55,9 +56,9 @@ static const lws_retry_bo_t retry = {
     .retry_ms_table            = backoff_ms,
     .retry_ms_table_count        = LWS_ARRAY_SIZE(backoff_ms),
     .conceal_count            = LWS_ARRAY_SIZE(backoff_ms),
-    .secs_since_valid_ping        = 600, /* force PINGs after secs idle */
-    .secs_since_valid_hangup    = 900, /* hangup after secs idle */
-    .jitter_percent            = 15,
+    .secs_since_valid_ping        = 60, /* force PINGs after secs idle */
+    .secs_since_valid_hangup    = 60, /* hangup after secs idle */
+    .jitter_percent            = 30,
     /*
      * jitter_percent controls how much additional random delay is
      * added to the actual interval to be used, default 30
@@ -72,6 +73,8 @@ static int event_cb(lws *wsi, enum lws_callback_reasons reason, void *user, void
   case LWS_CALLBACK_PROTOCOL_INIT:
     lwsl_user("%s: LWS_CALLBACK_PROTOCOL_INIT\n", __func__);
     for (std::pair<int, endpoint_connection> n : endpoints_prop) {
+      assert(endpoints_prop[n.first].ws_path);
+      assert(endpoints_prop[n.first].wsi);
       if(endpoints_prop[n.first].ws_path != NULL){
         idx = n.first;
         force_create_ccinfo(idx.load());
@@ -81,6 +84,8 @@ static int event_cb(lws *wsi, enum lws_callback_reasons reason, void *user, void
 
   case LWS_CALLBACK_CLIENT_ESTABLISHED :
     for (std::pair<int, endpoint_connection> n : endpoints_prop) {
+      assert(endpoints_prop[n.first].ws_path);
+      assert(endpoints_prop[n.first].wsi);
       if (endpoints_prop[n.first].ws_path != NULL && endpoints_prop[n.first].wsi == wsi && strcmp(current_data->ws_path, endpoints_prop[n.first].ws_path) == 0) {
         pthread_mutex_lock(&lock_concurrent);
         idx = n.first;
@@ -97,6 +102,8 @@ static int event_cb(lws *wsi, enum lws_callback_reasons reason, void *user, void
   case LWS_CALLBACK_CLIENT_RECEIVE : {    // Handle incoming messages here.
     try {
       for (std::pair<int, endpoint_connection> n : endpoints_prop) {
+        assert(endpoints_prop[n.first].ws_path);
+        assert(endpoints_prop[n.first].wsi);
         if (endpoints_prop[n.first].ws_path != NULL && endpoints_prop[n.first].wsi == wsi && strcmp(current_data->ws_path, endpoints_prop[n.first].ws_path) == 0) {
           pthread_mutex_lock(&lock_concurrent);
           string str_result = string(reinterpret_cast<const char *>(in), len);
@@ -134,6 +141,8 @@ static int event_cb(lws *wsi, enum lws_callback_reasons reason, void *user, void
 
   case LWS_CALLBACK_CLOSED :
     for (std::pair<int, endpoint_connection> n : endpoints_prop) {
+      assert(endpoints_prop[n.first].ws_path);
+      assert(endpoints_prop[n.first].wsi);
       if (endpoints_prop[n.first].ws_path != NULL && endpoints_prop[n.first].wsi == wsi && strcmp(current_data->ws_path, endpoints_prop[n.first].ws_path) == 0) {
         pthread_mutex_lock(&lock_concurrent);
         idx = n.first;
@@ -160,6 +169,8 @@ static int event_cb(lws *wsi, enum lws_callback_reasons reason, void *user, void
 
   case LWS_CALLBACK_CLIENT_CONNECTION_ERROR :
     for (std::pair<int, endpoint_connection> n : endpoints_prop) {
+      assert(endpoints_prop[n.first].ws_path);
+      assert(endpoints_prop[n.first].wsi);
       if (endpoints_prop[n.first].ws_path != NULL && endpoints_prop[n.first].wsi == wsi && strcmp(current_data->ws_path, endpoints_prop[n.first].ws_path) == 0) {
         pthread_mutex_lock(&lock_concurrent);
         idx = n.first;
@@ -186,6 +197,8 @@ static int event_cb(lws *wsi, enum lws_callback_reasons reason, void *user, void
 
   case LWS_CALLBACK_CLIENT_CLOSED:
     for (std::pair<int, endpoint_connection> n : endpoints_prop) {
+      assert(endpoints_prop[n.first].ws_path);
+      assert(endpoints_prop[n.first].wsi);
       if (endpoints_prop[n.first].ws_path != NULL && endpoints_prop[n.first].wsi == wsi && strcmp(current_data->ws_path, endpoints_prop[n.first].ws_path) == 0) {
         pthread_mutex_lock(&lock_concurrent);
         idx = n.first;
@@ -206,6 +219,10 @@ static int event_cb(lws *wsi, enum lws_callback_reasons reason, void *user, void
 
   do_retry:
   try {
+    assert(endpoints_prop[n.first].ws_path);
+    assert(endpoints_prop[n.first].wsi);
+    assert(endpoints_prop[n.first]._sul);
+    assert(endpoints_prop[n.first].retry_count);
     if (lws_retry_sul_schedule_retry_wsi(endpoints_prop[idx.load()].wsi, &endpoints_prop[idx.load()]._sul, connect_client,
                                          &endpoints_prop[idx.load()].retry_count)) {
       if (endpoints_prop[idx.load()].retry_count > 2 * (LWS_ARRAY_SIZE(backoff_ms))) {
@@ -237,6 +254,7 @@ static int event_cb(lws *wsi, enum lws_callback_reasons reason, void *user, void
           pthread_mutex_unlock(&lock_concurrent);
           return -1;
         }
+        endpoints_prop[idx.load()].retry_count = 0;
         pthread_mutex_unlock(&lock_concurrent);
       }
     }
@@ -274,6 +292,9 @@ ALWAYS_INLINE static void sigint_handler(int sig) {
  */
 ALWAYS_INLINE static void connect_client(lws_sorted_usec_list_t *sul) {
   for (std::pair<int, endpoint_connection> n : endpoints_prop) {
+    assert(endpoints_prop[n.first].ws_path);
+    assert(endpoints_prop[n.first].wsi);
+    assert(endpoints_prop[n.first]._sul);
     if (&endpoints_prop[n.first]._sul == sul) {
       pthread_mutex_lock(&lock_concurrent);
       std::atomic<int> idx(n.first);
@@ -329,6 +350,8 @@ ALWAYS_INLINE static void connect_client(lws_sorted_usec_list_t *sul) {
 
 ALWAYS_INLINE static int force_create_ccinfo(const int &idx) {
   try {
+    assert(endpoints_prop[idx].ws_path);
+    assert(endpoints_prop[idx].wsi);
     struct lws_client_connect_info ccinfo{};
     memset(&ccinfo, 0, sizeof(ccinfo));
     ccinfo.context = context;
@@ -371,6 +394,7 @@ ALWAYS_INLINE static void force_delete_ccinfo(const char *path) {
   try {
     std::atomic<bool> path_found(false);
     for (std::pair<int, endpoint_connection> n : endpoints_prop) {
+      assert(endpoints_prop[n.first].ws_path);
       lwsl_info("%s: loop find path::%s vs path::%s\n",
                 __func__, path, endpoints_prop[n.first].ws_path);
 
@@ -378,8 +402,7 @@ ALWAYS_INLINE static void force_delete_ccinfo(const char *path) {
         std::atomic<int> idx(n.first);
         lwsl_info("%s: found connect_endpoints ws_path::%s\n",
                   __func__, endpoints_prop[idx].ws_path);
-        auto wsi = lws_get_context(endpoints_prop[idx].wsi);
-        lws_cancel_service(wsi);
+        lws_cancel_service_pt(endpoints_prop[idx].wsi);
         endpoints_prop[idx.load()].ws_path = NULL;
         endpoints_prop[idx.load()].wsi = NULL;
         endpoints_prop[idx.load()].json_cb = NULL;
@@ -407,6 +430,52 @@ ALWAYS_INLINE static void force_delete_ccinfo(const char *path) {
 void binance::Websocket::kill_all() {
   pthread_mutex_lock(&lock_concurrent);
   atomic_store(&lws_service_cancelled, 1);
+  pthread_mutex_unlock(&lock_concurrent);
+}
+
+ALWAYS_INLINE static void force_reconnect(const char *path) {
+
+  try {
+    std::atomic<bool> path_found(false);
+    for (std::pair<int, endpoint_connection> n : endpoints_prop) {
+      assert(endpoints_prop[n.first].ws_path);
+      assert(endpoints_prop[n.first]._sul);
+      lwsl_info("%s: loop find path::%s vs path::%s\n",
+                __func__, path, endpoints_prop[n.first].ws_path);
+
+      if (endpoints_prop[n.first].ws_path != NULL && strcmp(const_cast<char *>(path), endpoints_prop[n.first].ws_path) == 0) {
+        std::atomic<int> idx(n.first);
+        lwsl_info("%s: found ws_path::%s\n",
+                  __func__, endpoints_prop[idx.load()].ws_path);
+        if (!lws_service_cancelled)
+        {
+          //schedule the first client connection attempt to happen immediately
+          lws_sul_schedule(context, 0, &endpoints_prop[idx.load()]._sul, connect_client, 1 * LWS_US_PER_MS);
+          lwsl_user("%s: schedule reconnection for endpoint#:%d ws_path::%s\n",
+                    __func__, idx.load(), endpoints_prop[idx.load()].ws_path);
+        }
+        path_found.store(true);
+        break;
+      }
+    }
+    if(!path_found.load()){
+      lwsl_err("%s: not found force_reconnect error path::%s\n",
+               __func__, path);
+    }
+
+    return;
+  } catch (exception &e) {
+    lwsl_err("%s:::%s\n",
+             __func__, e.what());
+    lwsl_err("%s: not found force_reconnect error path::%s\n",
+             __func__, path);
+    return;
+  }
+}
+
+void binance::Websocket::reconnect_path(const char *path) {
+  pthread_mutex_lock(&lock_concurrent);
+  force_reconnect(path);
   pthread_mutex_unlock(&lock_concurrent);
 }
 
