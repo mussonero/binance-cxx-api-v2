@@ -4,3 +4,7 @@
 cmake-build-debug/
 
 src/exchnageinfo\.json
+
+src/binance_websocket_bk\.cpp
+
+src/binance_websocket_new\.cpp
