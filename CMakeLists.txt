@@ -70,10 +70,12 @@ endif()
 
 option(LWS_STATIC_PIC "" ON)
 option(LWS_WITH_SSL "" ON)
-option(LWS_WITH_MBEDTLS "Disable mbedtls for libwebsockkets" OFF)
+option(LWS_WITH_MBEDTLS "Enable mbedtls for libwebsockets" OFF)
 option(LWS_WITH_NO_LOGS "" OFF)
 option(LWS_WITH_EXPORT_LWSTARGETS "" OFF)
 option(LWS_WITHOUT_EXTENSIONS "" ON)
+option(LWS_WITH_SYS_ASYNC_DNS "" ON)
+option(LWS_WITH_SYS_FAULT_INJECTION "" ON)
 
 #set(LWS_MBEDTLS_INCLUDE_DIRS
 #		"${MBEDTLS_INCLUDE_DIRS}")
