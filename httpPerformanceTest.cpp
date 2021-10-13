@@ -141,6 +141,7 @@ int main()
 			return 1;
 
 		}
+		sleep(1);
 	}
 
 	/* wait for all threads to finish */

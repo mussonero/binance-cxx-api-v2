@@ -8,6 +8,7 @@
 #include "binance.h"
 #include "binance_logger.h"
 #include "binance_utils.h"
+#include <libwebsockets.h>
 
 using namespace binance;
 using namespace std;
@@ -104,7 +105,45 @@ public :
 		curl_easy_cleanup(curl);
 	}
 };
+#if defined(LWS_WITH_MBEDTLS) || defined(USE_WOLFSSL)
+#include <mbedtls/x509_crt.h>
+static const char * const ca_pem_digicert_global_root =
+    "-----BEGIN CERTIFICATE-----\n"
+    "MIIDrzCCApegAwIBAgIQCDvgVpBCRrGhdWrJWZHHSjANBgkqhkiG9w0BAQUFADBh\n"
+    "MQswCQYDVQQGEwJVUzEVMBMGA1UEChMMRGlnaUNlcnQgSW5jMRkwFwYDVQQLExB3\n"
+    "d3cuZGlnaWNlcnQuY29tMSAwHgYDVQQDExdEaWdpQ2VydCBHbG9iYWwgUm9vdCBD\n"
+    "QTAeFw0wNjExMTAwMDAwMDBaFw0zMTExMTAwMDAwMDBaMGExCzAJBgNVBAYTAlVT\n"
+    "MRUwEwYDVQQKEwxEaWdpQ2VydCBJbmMxGTAXBgNVBAsTEHd3dy5kaWdpY2VydC5j\n"
+    "b20xIDAeBgNVBAMTF0RpZ2lDZXJ0IEdsb2JhbCBSb290IENBMIIBIjANBgkqhkiG\n"
+    "9w0BAQEFAAOCAQ8AMIIBCgKCAQEA4jvhEXLeqKTTo1eqUKKPC3eQyaKl7hLOllsB\n"
+    "CSDMAZOnTjC3U/dDxGkAV53ijSLdhwZAAIEJzs4bg7/fzTtxRuLWZscFs3YnFo97\n"
+    "nh6Vfe63SKMI2tavegw5BmV/Sl0fvBf4q77uKNd0f3p4mVmFaG5cIzJLv07A6Fpt\n"
+    "43C/dxC//AH2hdmoRBBYMql1GNXRor5H4idq9Joz+EkIYIvUX7Q6hL+hqkpMfT7P\n"
+    "T19sdl6gSzeRntwi5m3OFBqOasv+zbMUZBfHWymeMr/y7vrTC0LUq7dBMtoM1O/4\n"
+    "gdW7jVg/tRvoSSiicNoxBN33shbyTApOB6jtSj1etX+jkMOvJwIDAQABo2MwYTAO\n"
+    "BgNVHQ8BAf8EBAMCAYYwDwYDVR0TAQH/BAUwAwEB/zAdBgNVHQ4EFgQUA95QNVbR\n"
+    "TLtm8KPiGxvDl7I90VUwHwYDVR0jBBgwFoAUA95QNVbRTLtm8KPiGxvDl7I90VUw\n"
+    "DQYJKoZIhvcNAQEFBQADggEBAMucN6pIExIK+t1EnE9SsPTfrgT1eXkIoyQY/Esr\n"
+    "hMAtudXH/vTBH1jLuG2cenTnmCmrEbXjcKChzUyImZOMkXDiqw8cvpOp/2PV5Adg\n"
+    "06O/nVsJ8dWO41P0jmP6P6fbtGbfYmbW0W5BjfIttep3Sp+dWOIrWcBAI+0tKIJF\n"
+    "PnlUkiaY4IBIqDfv8NZ5YBberOgOzW6sRBc4L0na4UU+Krk2U886UAb3LujEV0ls\n"
+    "YSEY1QSteDwsOoBrp+uvFRTp2InBuThs4pFsiv9kuXclVzDAGySj4dzp30d8tbQk\n"
+    "CAUw7C29C79Fv1C5qfPrmAESrciIxpg0X40KPMbp1ZWVbd4=\n"
+    "-----END CERTIFICATE-----\n";
 
+static CURLcode sslctx_function(CURL* curl, void* sslctx, void* parm) {
+
+  const char *mypem = static_cast<char *>(parm);
+
+mbedtls_x509_crt* cacert = static_cast<mbedtls_x509_crt*>(sslctx);
+
+int ret = mbedtls_x509_crt_parse(cacert, (const unsigned char*) mypem, (size_t)(strlen(mypem) + 1));
+if(ret !=0)
+  return CURLE_SSL_CERTPROBLEM;
+
+return CURLE_OK;
+}
+#endif
 // Do the curl
 binanceError_t binance::Server::getCurlWithHeader(string& str_result, 
 	const string& url, const vector<string>& extra_http_header, const string& post_data, const string& action)
@@ -125,6 +164,14 @@ binanceError_t binance::Server::getCurlWithHeader(string& str_result,
 		curl_easy_setopt(curl.get(), CURLOPT_WRITEFUNCTION, getCurlCb);
 		curl_easy_setopt(curl.get(), CURLOPT_WRITEDATA, &str_result);
 		curl_easy_setopt(curl.get(), CURLOPT_SSL_VERIFYPEER, 0L);
+#if defined(LWS_WITH_MBEDTLS) || defined(USE_WOLFSSL)
+       /*
+       * load the certificate by installing a function doing the necessary
+       * "modifications" to the SSL CONTEXT just before link init
+       */
+        curl_easy_setopt(curl.get(), CURLOPT_SSL_CTX_FUNCTION, *sslctx_function);
+        curl_easy_setopt(curl.get(), CURLOPT_SSL_CTX_DATA, ca_pem_digicert_global_root);
+#endif
 		if (curl_easy_setopt(curl.get(), CURLOPT_SSL_VERIFYHOST, 1L) != CURLE_OK)
 		{
 			Logger::write_log("<curl_api> curl_easy_setopt(CURLOPT_SSL_VERIFYPEER) is not supported");

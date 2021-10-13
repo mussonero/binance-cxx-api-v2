@@ -53,6 +53,7 @@ option(BUILD_STATIC_LIBS "" ON)
 option(BUILD_TESTING "" OFF)
 option(CMAKE_USE_MBEDTLS "Enable mbedTLS for SSL/TLS" ON)
 option(CMAKE_USE_OPENSSL "Enable openSLL for SSL/TLS" OFF)
+
 option(CURL_STATICLIB "" ON)
 
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/external_libs/curl EXCLUDE_FROM_ALL)
@@ -62,25 +63,33 @@ set(CURL_INCLUDE_DIRS
 set(CURL_LIBRARIES libcurl)
 
 if(CMAKE_USE_MBEDTLS AND NOT SSL_ENABLED)
-	set(SSL_ENABLED ON)
+	set(CURL_CA_BUNDLE none CACHE BOOL "Override option" FORCE)
+	set(CURL_CA_PATH none CACHE BOOL "Override option" FORCE)
+	set(CURL_CA_PATH_SET OFF CACHE BOOL "Override option" FORCE)
+	set(CURL_CA_BUNDLE_SET OFF CACHE BOOL "Override option" FORCE)
+	set(CURL_CA_FALLBACK ON CACHE BOOL "Override option" FORCE)
+	set(CURL_DISABLE_OPENSSL_AUTO_LOAD_CONFIG ON CACHE BOOL "Override option" FORCE)
+	set(USE_OPENSSL OFF)
 	set(USE_MBEDTLS ON)
 	list(APPEND CURL_LIBS ${MBEDTLS_LIBRARIES})
 	include_directories(${MBEDTLS_INCLUDE_DIR})
 endif()
 
 option(LWS_STATIC_PIC "" ON)
-option(LWS_WITH_SSL "" ON)
-option(LWS_WITH_MBEDTLS "Enable mbedtls for libwebsockets" OFF)
+option(LWS_WITH_LWSWS "" ON)
+option(LWS_WITH_MBEDTLS "Enable mbedtls for libwebsockets" ON)
+option(LWS_HAVE_mbedtls_ssl_get_alpn_protocol "" ON)
 option(LWS_WITH_NO_LOGS "" OFF)
 option(LWS_WITH_EXPORT_LWSTARGETS "" OFF)
 option(LWS_WITHOUT_EXTENSIONS "" ON)
 option(LWS_WITH_SYS_ASYNC_DNS "" ON)
 option(LWS_WITH_SYS_FAULT_INJECTION "" ON)
 
-#set(LWS_MBEDTLS_INCLUDE_DIRS
-#		"${MBEDTLS_INCLUDE_DIRS}")
-#set(LWS_MBEDTLS_LIBRARIES
-#		"${MBEDTLS_LIBRARIES}")
+
+set(LWS_MBEDTLS_INCLUDE_DIRS
+		"${MBEDTLS_INCLUDE_DIRS}")
+set(LWS_MBEDTLS_LIBRARIES
+		"${MBEDTLS_LIBRARIES}")
 
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/external_libs/libwebsockets EXCLUDE_FROM_ALL)
 set_property(TARGET websockets PROPERTY POSITION_INDEPENDENT_CODE ON)
@@ -102,7 +111,7 @@ add_library(${PROJECT_NAME} SHARED ${LIBRARY_SRC})
 target_include_directories(${PROJECT_NAME} PRIVATE "${LIBWEBSOCKETS_INCLUDE_DIRS}")
 target_include_directories(${PROJECT_NAME} PRIVATE "${JSONCPP_INCLUDE_DIRS}")
 target_include_directories(${PROJECT_NAME} PRIVATE "${MBEDTLS_INCLUDE_DIRS}")
-target_link_libraries(${PROJECT_NAME} ${LIBWEBSOCKETS_LIBRARIES} ${JSONCPP_LIBRARIES} ${CURL_LIBRARIES})
+target_link_libraries(${PROJECT_NAME} ${MBEDTLS_LIBRARIES} ${JSONCPP_LIBRARIES} ${CURL_LIBRARIES} ${LIBWEBSOCKETS_LIBRARIES})
 
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include)
 
