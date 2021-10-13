@@ -19,7 +19,7 @@ using namespace std;
  /*
  * MbedTLS / WolfSSL have to be told which CA to trust explicitly.
  */
-static const char * const ca_pem_digicert_global_root =
+static const char * const sslRootsCA =
     "-----BEGIN CERTIFICATE-----\n"
     "MIIDrzCCApegAwIBAgIQCDvgVpBCRrGhdWrJWZHHSjANBgkqhkiG9w0BAQUFADBh\n"
     "MQswCQYDVQQGEwJVUzEVMBMGA1UEChMMRGlnaUNlcnQgSW5jMRkwFwYDVQQLExB3\n"
@@ -360,8 +360,8 @@ void binance::Websocket::init() {
    /*
    * MbedTLS / WolfSSL have to be told which CA to trust explicitly.
    */
-  info.client_ssl_ca_mem = ca_pem_digicert_global_root;
-  info.client_ssl_ca_mem_len = (unsigned int)strlen(ca_pem_digicert_global_root);
+  info.client_ssl_ca_mem = sslRootsCA;
+  info.client_ssl_ca_mem_len = (unsigned int)strlen(sslRootsCA);
 #endif
 
   context = lws_create_context(&info);

@@ -107,7 +107,7 @@ public :
 };
 #if defined(LWS_WITH_MBEDTLS) || defined(USE_WOLFSSL)
 #include <mbedtls/x509_crt.h>
-static const char * const ca_pem_digicert_global_root =
+static const char * const sslRootsCA =
     "-----BEGIN CERTIFICATE-----\n"
     "MIIDrzCCApegAwIBAgIQCDvgVpBCRrGhdWrJWZHHSjANBgkqhkiG9w0BAQUFADBh\n"
     "MQswCQYDVQQGEwJVUzEVMBMGA1UEChMMRGlnaUNlcnQgSW5jMRkwFwYDVQQLExB3\n"
@@ -131,17 +131,13 @@ static const char * const ca_pem_digicert_global_root =
     "CAUw7C29C79Fv1C5qfPrmAESrciIxpg0X40KPMbp1ZWVbd4=\n"
     "-----END CERTIFICATE-----\n";
 
-static CURLcode sslctx_function(CURL* curl, void* sslctx, void* parm) {
+static CURLcode ssl_ctx_callback(CURL* curl, void* ssl_ctx, void* userptr)
+{
+  auto config = (mbedtls_ssl_config*)ssl_ctx;
 
-  const char *mypem = static_cast<char *>(parm);
+  mbedtls_ssl_conf_ca_chain(config, (mbedtls_x509_crt*)userptr, nullptr);
 
-mbedtls_x509_crt* cacert = static_cast<mbedtls_x509_crt*>(sslctx);
-
-int ret = mbedtls_x509_crt_parse(cacert, (const unsigned char*) mypem, (size_t)(strlen(mypem) + 1));
-if(ret !=0)
-  return CURLE_SSL_CERTPROBLEM;
-
-return CURLE_OK;
+  return CURLE_OK;
 }
 #endif
 // Do the curl
@@ -150,7 +146,7 @@ binanceError_t binance::Server::getCurlWithHeader(string& str_result,
 {
 	binanceError_t status = binanceSuccess;
 	
-	Logger::write_log("<curl_api>");
+	Logger::write_log("<curl_api> version |%s|", curl_version());
 
 	SmartCURL curl;
 
@@ -169,8 +165,17 @@ binanceError_t binance::Server::getCurlWithHeader(string& str_result,
        * load the certificate by installing a function doing the necessary
        * "modifications" to the SSL CONTEXT just before link init
        */
-        curl_easy_setopt(curl.get(), CURLOPT_SSL_CTX_FUNCTION, *sslctx_function);
-        curl_easy_setopt(curl.get(), CURLOPT_SSL_CTX_DATA, ca_pem_digicert_global_root);
+        static mbedtls_x509_crt cacert;
+        mbedtls_x509_crt_init(&cacert);
+        int ret =  mbedtls_x509_crt_parse(&cacert, reinterpret_cast<const unsigned char *>(sslRootsCA), (size_t)(strlen(sslRootsCA) + 1));
+        if(ret!=0) {
+          Logger::write_log("<curl_api> curl_easy_setopt(CURLE_SSL_CACERT_BADFILE)");
+          status = binanceErrorCurlFailed;
+          break;
+        }
+
+        curl_easy_setopt(curl.get(), CURLOPT_SSL_CTX_DATA, &cacert);
+        curl_easy_setopt(curl.get(), CURLOPT_SSL_CTX_FUNCTION, ssl_ctx_callback);
 #endif
 		if (curl_easy_setopt(curl.get(), CURLOPT_SSL_VERIFYHOST, 1L) != CURLE_OK)
 		{

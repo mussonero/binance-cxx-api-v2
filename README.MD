@@ -6,12 +6,9 @@ It included updated versions of LibCrul, LibWebSockets, MbedTLS, and JsonCpp:
 
 ### Note:
 ```
-LibWebSockets use OS prebuilt openSLL.
-The reason is lws_tls_client_connect keep crashing when LibWebSockets use MbedTLS.
-There is an issue with lws_role_call_alpn_negotiated(wsi, (const char *)prot)
+LibCrul and LibWebSockets use MbedTLS with builtin CA,cert.
 ```
 ### Prerequisites:
-
 ```
 sudo apt-get install build-essential cmake g++ libssl-dev
 ```
