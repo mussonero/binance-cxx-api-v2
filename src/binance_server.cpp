@@ -105,7 +105,7 @@ public :
 		curl_easy_cleanup(curl);
 	}
 };
-#if defined(LWS_WITH_MBEDTLS) || defined(USE_WOLFSSL)
+#if defined(LWS_WITH_MBEDTLS)
 #include <mbedtls/x509_crt.h>
 static const char * const sslRootsCA =
     "-----BEGIN CERTIFICATE-----\n"
@@ -160,8 +160,7 @@ binanceError_t binance::Server::getCurlWithHeader(string& str_result,
 		curl_easy_setopt(curl.get(), CURLOPT_WRITEFUNCTION, getCurlCb);
 		curl_easy_setopt(curl.get(), CURLOPT_WRITEDATA, &str_result);
 		curl_easy_setopt(curl.get(), CURLOPT_SSL_VERIFYPEER, 0L);
-#if defined(LWS_WITH_MBEDTLS) || defined(USE_WOLFSSL)
-       /*
+#if defined(LWS_WITH_MBEDTLS)
        * load the certificate by installing a function doing the necessary
        * "modifications" to the SSL CONTEXT just before link init
        */

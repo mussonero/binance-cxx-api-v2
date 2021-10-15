@@ -9,9 +9,13 @@
 
 #include <cstring>
 #include <sys/time.h>
-#include <mbedtls/sha256.h>
-#include <mbedtls/md.h>
+//#include <mbedtls/sha256.h>
+//#include <mbedtls/md.h>
 #include <sstream>
+#include <wolfssl/openssl/evp.h>
+#include <wolfssl/options.h>
+#include <wolfssl/openssl/hmac.h>
+#include <wolfssl/openssl/sha.h>
 
 using namespace std;
 
@@ -90,7 +94,7 @@ unsigned long binance::get_current_ms_epoch( )
 	return tv.tv_sec * 1000 + tv.tv_usec / 1000;
 }
 
-string binance::hmac_sha256( const char *key, const char *data)
+/*string binance::hmac_sha256( const char *key, const char *data)
 {
 	unsigned char digest[32];
 	mbedtls_md_hmac( mbedtls_md_info_from_type( MBEDTLS_MD_SHA256 ),
@@ -105,6 +109,25 @@ string binance::sha256( const char *data )
 	unsigned char digest[32];
 	mbedtls_sha256_ret( reinterpret_cast<const unsigned char*>(data),
 		strlen(data), digest, 0 );
-	return b2a_hex( (char *)digest, 32 );	
+	return b2a_hex( (char *)digest, 32 );
+}*/
+
+//---------------------------
+string binance::hmac_sha256( const char *key, const char *data) {
+
+  unsigned char* digest;
+  digest = HMAC(EVP_sha256(), key, strlen(key), (unsigned char*)data, strlen(data), NULL, NULL);
+  return b2a_hex( (char *)digest, 32 );
 }
 
+//------------------------------
+string binance::sha256( const char *data ) {
+
+  unsigned char digest[32];
+  SHA256_CTX sha256;
+  SHA256_Init(&sha256);
+  SHA256_Update(&sha256, data, strlen(data) );
+  SHA256_Final(digest, &sha256);
+  return b2a_hex( (char *)digest, 32 );
+
+}
