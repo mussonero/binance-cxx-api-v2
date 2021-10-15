@@ -1,12 +1,12 @@
 [submodule "external_libs/jsoncpp"]
 	path = external_libs/jsoncpp
 	url = https://github.com/open-source-parsers/jsoncpp.git
-[submodule "external_libs/mbedtls"]
-	path = external_libs/mbedtls
-	url = https://github.com/ARMmbed/mbedtls.git
 [submodule "external_libs/libwebsockets"]
 	path = external_libs/libwebsockets
 	url = https://github.com/warmcat/libwebsockets.git
 [submodule "external_libs/curl"]
 	path = external_libs/curl
 	url = https://github.com/curl/curl.git
+[submodule "external_libs/wolfssl"]
+	path = external_libs/wolfssl
+	url = https://github.com/wolfSSL/wolfssl.git

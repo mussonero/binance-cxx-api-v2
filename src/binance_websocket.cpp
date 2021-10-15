@@ -15,35 +15,6 @@
 using namespace binance;
 using namespace std;
 
-#if defined(LWS_WITH_MBEDTLS) || defined(USE_WOLFSSL)
- /*
- * MbedTLS / WolfSSL have to be told which CA to trust explicitly.
- */
-static const char * const sslRootsCA =
-    "-----BEGIN CERTIFICATE-----\n"
-    "MIIDrzCCApegAwIBAgIQCDvgVpBCRrGhdWrJWZHHSjANBgkqhkiG9w0BAQUFADBh\n"
-    "MQswCQYDVQQGEwJVUzEVMBMGA1UEChMMRGlnaUNlcnQgSW5jMRkwFwYDVQQLExB3\n"
-    "d3cuZGlnaWNlcnQuY29tMSAwHgYDVQQDExdEaWdpQ2VydCBHbG9iYWwgUm9vdCBD\n"
-    "QTAeFw0wNjExMTAwMDAwMDBaFw0zMTExMTAwMDAwMDBaMGExCzAJBgNVBAYTAlVT\n"
-    "MRUwEwYDVQQKEwxEaWdpQ2VydCBJbmMxGTAXBgNVBAsTEHd3dy5kaWdpY2VydC5j\n"
-    "b20xIDAeBgNVBAMTF0RpZ2lDZXJ0IEdsb2JhbCBSb290IENBMIIBIjANBgkqhkiG\n"
-    "9w0BAQEFAAOCAQ8AMIIBCgKCAQEA4jvhEXLeqKTTo1eqUKKPC3eQyaKl7hLOllsB\n"
-    "CSDMAZOnTjC3U/dDxGkAV53ijSLdhwZAAIEJzs4bg7/fzTtxRuLWZscFs3YnFo97\n"
-    "nh6Vfe63SKMI2tavegw5BmV/Sl0fvBf4q77uKNd0f3p4mVmFaG5cIzJLv07A6Fpt\n"
-    "43C/dxC//AH2hdmoRBBYMql1GNXRor5H4idq9Joz+EkIYIvUX7Q6hL+hqkpMfT7P\n"
-    "T19sdl6gSzeRntwi5m3OFBqOasv+zbMUZBfHWymeMr/y7vrTC0LUq7dBMtoM1O/4\n"
-    "gdW7jVg/tRvoSSiicNoxBN33shbyTApOB6jtSj1etX+jkMOvJwIDAQABo2MwYTAO\n"
-    "BgNVHQ8BAf8EBAMCAYYwDwYDVR0TAQH/BAUwAwEB/zAdBgNVHQ4EFgQUA95QNVbR\n"
-    "TLtm8KPiGxvDl7I90VUwHwYDVR0jBBgwFoAUA95QNVbRTLtm8KPiGxvDl7I90VUw\n"
-    "DQYJKoZIhvcNAQEFBQADggEBAMucN6pIExIK+t1EnE9SsPTfrgT1eXkIoyQY/Esr\n"
-    "hMAtudXH/vTBH1jLuG2cenTnmCmrEbXjcKChzUyImZOMkXDiqw8cvpOp/2PV5Adg\n"
-    "06O/nVsJ8dWO41P0jmP6P6fbtGbfYmbW0W5BjfIttep3Sp+dWOIrWcBAI+0tKIJF\n"
-    "PnlUkiaY4IBIqDfv8NZ5YBberOgOzW6sRBc4L0na4UU+Krk2U886UAb3LujEV0ls\n"
-    "YSEY1QSteDwsOoBrp+uvFRTp2InBuThs4pFsiv9kuXclVzDAGySj4dzp30d8tbQk\n"
-    "CAUw7C29C79Fv1C5qfPrmAESrciIxpg0X40KPMbp1ZWVbd4=\n"
-    "-----END CERTIFICATE-----\n";
-#endif
-
 static struct lws_context *context;
 static atomic<int> protocol_init(0);
 static atomic<int> lws_service_cancelled(0);
@@ -282,9 +253,9 @@ static int force_create_ccinfo(const std::string &path) {
   ccinfo.host = ccinfo.address;
   ccinfo.origin = ccinfo.address;
   ccinfo.ssl_connection = LCCSCF_USE_SSL | LCCSCF_ALLOW_SELFSIGNED |
-      LCCSCF_SKIP_SERVER_CERT_HOSTNAME_CHECK |
+      LCCSCF_SKIP_SERVER_CERT_HOSTNAME_CHECK | LCCSCF_ALLOW_INSECURE |
       LCCSCF_PIPELINE | LCCSCF_PRIORITIZE_READS |
-      LCCSCF_WAKE_SUSPEND__VALIDITY;
+      LCCSCF_WAKE_SUSPEND__VALIDITY | LCCSCF_ALLOW_EXPIRED;
   ccinfo.protocol = protocols[0].name;
   ccinfo.local_protocol_name = protocols[0].name;
   ccinfo.retry_and_idle_policy = &retry;
@@ -312,7 +283,7 @@ static void force_delete_ccinfo(const std::string &path) {
 
   if ( endpoints_prop.find(path) != endpoints_prop.end() ) {
     lwsl_info("%s: found connect_endpoints ws_path::%s\n",
-              __func__, endpoints_prop.at(path).ws_path);
+              __func__, endpoints_prop.at(path).ws_path.c_str());
     while (endpoints_prop.at(path).creating_conn.load()){
       if(!endpoints_prop.at(path).creating_conn.load())
         break;
@@ -349,20 +320,13 @@ void binance::Websocket::init() {
   memset(&info, 0, sizeof(info));
   // This option is needed here to imply LWS_SERVER_OPTION_DO_SSL_GLOBAL_INIT
   // option, which must be set on newer versions of OpenSSL.
-  info.options = LWS_SERVER_OPTION_DO_SSL_GLOBAL_INIT;
+  info.options = LWS_SERVER_OPTION_DO_SSL_GLOBAL_INIT | LWS_SERVER_OPTION_REQUIRE_VALID_OPENSSL_CLIENT_CERT;
   info.port = CONTEXT_PORT_NO_LISTEN;
   info.gid = -1;
   info.uid = -1;
   info.protocols = protocols;
   info.fd_limit_per_thread = 1024;
   info.max_http_header_pool = 1024;
-#if defined(LWS_WITH_MBEDTLS) || defined(USE_WOLFSSL)
-   /*
-   * MbedTLS / WolfSSL have to be told which CA to trust explicitly.
-   */
-  info.client_ssl_ca_mem = sslRootsCA;
-  info.client_ssl_ca_mem_len = (unsigned int)strlen(sslRootsCA);
-#endif
 
   context = lws_create_context(&info);
   if (!context) {
@@ -371,12 +335,14 @@ void binance::Websocket::init() {
     pthread_mutex_destroy(&lock_concurrent);
     return;
   } else {
+    atomic_store(&lws_service_cancelled, 0);
     lws_service(context, 0);
     while (!protocol_init.load()){
       if(protocol_init.load())
         break;
+      if(lws_service_cancelled)
+        break;
     }
-    atomic_store(&lws_service_cancelled, 0);
   }
 }
 
@@ -398,12 +364,13 @@ void binance::Websocket::connect_endpoint(CB cb,const std::string &path) {
   }
   if(!lws_service_cancelled && context && protocol_init.load()){
     pthread_mutex_lock(&lock_concurrent);
-    endpoints_prop[path].ws_path = path;
+    endpoints_prop[path].ws_path.clear();
     endpoints_prop[path].json_cb = cb;
     endpoints_prop[path].retry_count = 0;
     endpoints_prop[path].wsi = nullptr;
     endpoints_prop[path].creating_conn = false;
     endpoints_prop[path].close_conn = true;
+    endpoints_prop[path].ws_path = path;
     pthread_mutex_unlock(&lock_concurrent);
     int n = force_create_ccinfo(path);
     lwsl_user("%s: connecting::%s connect result[%s],\n",

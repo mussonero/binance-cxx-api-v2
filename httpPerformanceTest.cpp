@@ -141,6 +141,7 @@ int main()
 			return 1;
 
 		}
+		/*wait 1sec*/
 		sleep(1);
 	}
 

@@ -13,7 +13,6 @@
 //#include <mbedtls/md.h>
 #include <sstream>
 #include <wolfssl/openssl/evp.h>
-#include <wolfssl/options.h>
 #include <wolfssl/openssl/hmac.h>
 #include <wolfssl/openssl/sha.h>
 
@@ -67,6 +66,7 @@ string binance::string_toupper( const char *cstr )
 
 string binance::b2a_hex( char *byte_arr, int n )
 {
+  if(!byte_arr)return "";
 	const static std::string HexCodes = "0123456789abcdef";
 	string HexString;
 	for ( int i = 0; i < n ; ++i ) {
@@ -113,21 +113,24 @@ string binance::sha256( const char *data )
 }*/
 
 //---------------------------
-string binance::hmac_sha256( const char *key, const char *data) {
-
-  unsigned char* digest;
-  digest = HMAC(EVP_sha256(), key, strlen(key), (unsigned char*)data, strlen(data), NULL, NULL);
+string binance::hmac_sha256( const char *key, const char *data)
+{
+  unsigned char digest[32];
+  unsigned int digest_len = -1;
+  HMAC(EVP_sha256(),
+       reinterpret_cast<const unsigned char*>(key), strlen(key),
+       reinterpret_cast<const unsigned char*>(data), strlen(data),
+       digest, &digest_len);
   return b2a_hex( (char *)digest, 32 );
 }
 
 //------------------------------
-string binance::sha256( const char *data ) {
-
+string binance::sha256( const char *data )
+{
   unsigned char digest[32];
   SHA256_CTX sha256;
   SHA256_Init(&sha256);
   SHA256_Update(&sha256, data, strlen(data) );
   SHA256_Final(digest, &sha256);
   return b2a_hex( (char *)digest, 32 );
-
 }
