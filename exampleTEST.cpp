@@ -119,11 +119,18 @@ ws_userStream_OnData(Json::Value &json_result)
 string ws_1th_path = string("/ws/");
 
 void * Thread_1(void * id) {
-    cout << "Thread_1 loop" << endl;
-
     Server _server;
     Account account(_server);
+    if(!account.keysAreSet()){
+      cout << "api_key missing " << endl;
+      return NULL;
+    }
+    cout << "Thread_1 loop" << endl;
     Json::Value json_result;
+    account.getInfo(json_result);
+    cout << "permissions\n" << json_result["permissions"] << endl;
+    cout << "updateTime :: " << json_result["updateTime"] << endl;
+    json_result.clear();
     account.startUserDataStream(json_result);
     cout << json_result << endl;
     ws_1th_path.append(json_result["listenKey"].asString());
@@ -141,6 +148,12 @@ void * Thread_1(void * id) {
 };
 
 void * Thread_2(void * id) {
+  Server _server;
+  Account account(_server);
+  if(!account.keysAreSet()){
+    cout << "api_key missing " << endl;
+    return NULL;
+  }
   cout << "Thread_2 loop" << endl;
   sleep (10);
   cout << "add /ws/bnbusdt@miniTicker after enter_event_loop" << endl;

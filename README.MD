@@ -7,7 +7,7 @@ Thread safety : Lag free : Support multi-threads websockets connections and more
 
 ### Note:
 ```
-LibWebSockets and LibCurl use LibWolfSSL without builtin CA-cert.
+LibWebSockets and LibCurl use LibWolfSSL with a builtin CA-cert.
 ```
 ### Prerequisites:
 ```
@@ -27,25 +27,24 @@ make
 ```
 ### output:
 ```
-LINKBTC:getDepth time duration->291:ms
-ETHTUSD:getDepth time duration->286:ms
-XRPBNB:getDepth time duration->286:ms
-LINKETH:getDepth time duration->284:ms
-LINKBTC:getDepth time duration->286:ms
-BNBUSDT:getDepth time duration->284:ms
-Thread 0 finished in->1434:ms
-ETHTUSD:getDepth time duration->284:ms
-XRPBNB:getDepth time duration->285:ms
-LINKETH:getDepth time duration->287:ms
-LINKBTC:getDepth time duration->284:ms
-BNBUSDT:getDepth time duration->281:ms
-Thread 1 finished in->1426:ms
-ETHTUSD:getDepth time duration->286:ms
-XRPBNB:getDepth time duration->287:ms
-LINKETH:getDepth time duration->287:ms
-LINKBTC:getDepth time duration->287:ms
-BNBUSDT:getDepth time duration->289:ms
-Thread 2 finished in->1435:ms
+LINKBTC:getDepth time duration->249:ms
+ETHTUSD:getDepth time duration->246:ms
+XRPBNB:getDepth time duration->247:ms
+LINKETH:getDepth time duration->245:ms
+BNBUSDT:getDepth time duration->248:ms
+Thread 0 finished in->1237:ms  =
+LINKBTC:getDepth time duration->246:ms
+ETHTUSD:getDepth time duration->246:ms
+XRPBNB:getDepth time duration->246:ms
+LINKETH:getDepth time duration->247:ms
+BNBUSDT:getDepth time duration->246:ms
+Thread 1 finished in->1234:ms  =
+LINKBTC:getDepth time duration->246:ms
+ETHTUSD:getDepth time duration->245:ms
+XRPBNB:getDepth time duration->244:ms
+LINKETH:getDepth time duration->245:ms
+BNBUSDT:getDepth time duration->244:ms
+Thread 2 finished in->1227:ms 
 ~~~
 ~~~
 ```
