@@ -8,3 +8,5 @@ src/exchnageinfo\.json
 src/binance_websocket_bk\.cpp
 
 src/binance_websocket_new\.cpp
+
+plot/exampleWatch\.cpp_unused

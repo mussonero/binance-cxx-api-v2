@@ -255,7 +255,9 @@ static int event_cb(lws *wsi, enum lws_callback_reasons reason, void *user, void
 
 static void sigint_handler(int sig) {
   Logger::write_log("<binance::Websocket::sigint_handler> Interactive attention signal : %d\n", sig);
+  pthread_mutex_lock(&lock_concurrent);
   atomic_store(&lws_service_cancelled, 1);
+  pthread_mutex_unlock(&lock_concurrent);
 }
 
 /* do not use pthread_mutex_lock on force_create_ccinfo*/

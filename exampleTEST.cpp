@@ -274,7 +274,6 @@ int main()
       sleep(1);
       cout << "pthread_create 1" << endl;
       if (pthread_create(&inc_x_thread[0], NULL, Thread_1, reinterpret_cast<void *>(0))) {
-
         fprintf(stderr, "Error creating thread\n");
         return 1;
 
@@ -288,7 +287,6 @@ int main()
       sleep(1);
       cout << "pthread_create 2" << endl;
       if(pthread_create(&inc_x_thread[1], NULL,Thread_2, reinterpret_cast<void *>(1))) {
-
         fprintf(stderr, "Error creating thread\n");
         return 1;
 
@@ -301,7 +299,6 @@ int main()
   {
     
     if(pthread_join(inc_x_thread[i], NULL)) {
-
       fprintf(stderr, "Error joining thread\n");
       return -2;
     }

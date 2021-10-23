@@ -7,7 +7,7 @@ set(PROJECT_VERSION_MINOR 2)
 set(PROJECT_VERSION_PATCH 1)
 
 set(CMAKE_CXX_STANDARD 11)
-add_definitions(-DCMAKE_BUILD_TYPE=RELEASE -DCMAKE_DEBUG_POSTFIX -DNDEBUG -DWC_NO_HARDEN)
+add_definitions(-DCMAKE_BUILD_TYPE=RELEASE -DCMAKE_DEBUG_POSTFIX -DNDEBUG -DWC_NO_HARDEN -Wno-varargs)
 # Search path for CMake include files.
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 
@@ -121,13 +121,47 @@ target_link_libraries(${PROJECT_NAME} ${JSONCPP_LIBRARIES} ${WOLFSSL_LIBRARY} ${
 ## binance-cxx-api-v2.1 End ##
 
 add_executable(example example.cpp)
-target_include_directories(example PUBLIC "${JSONCPP_INCLUDE_DIRS}")
+target_include_directories(example PRIVATE "${JSONCPP_INCLUDE_DIRS}")
 target_link_libraries(example ${PROJECT_NAME})
 
 add_executable(exampleTEST exampleTEST.cpp)
-target_include_directories(exampleTEST PUBLIC "${JSONCPP_INCLUDE_DIRS}")
+target_include_directories(exampleTEST PRIVATE "${JSONCPP_INCLUDE_DIRS}")
 target_link_libraries(exampleTEST ${PROJECT_NAME})
 
 add_executable(httpPerformanceTest httpPerformanceTest.cpp)
-target_include_directories(httpPerformanceTest PUBLIC "${JSONCPP_INCLUDE_DIRS}")
+target_include_directories(httpPerformanceTest PRIVATE "${JSONCPP_INCLUDE_DIRS}")
 target_link_libraries(httpPerformanceTest ${PROJECT_NAME})
+
+
+#https://github.com/annacrombie/plot#
+## libplot Start ##
+file(GLOB_RECURSE XPLOT_SRC "plot/libplot/*.c" "plot/libplot/include/*.h" "plot/libplot/include/plot/*.h" "plot/libplot/include/internal/*.h")
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/plot/libplot/include)
+
+add_library(Xplot SHARED ${XPLOT_SRC})
+set_property(TARGET Xplot PROPERTY POSITION_INDEPENDENT_CODE ON)
+set(XPLOT_LIBRARY Xplot)
+set(XPLOT_INCLUDE_DIRS
+		"${CMAKE_CURRENT_SOURCE_DIR}/plot/libplot/include")
+target_compile_options(${XPLOT_LIBRARY} PRIVATE
+		"-Wundef"
+		"-Wmissing-include-dirs"
+		"-Wold-style-definition"
+		"-Wpointer-arith"
+		"-Winit-self"
+		"-Wstrict-prototypes"
+		"-Wendif-labels"
+		"-Wstrict-aliasing=2"
+		"-Woverflow"
+		"-Wno-missing-braces"
+		"-Wno-missing-field-initializers"
+		"-Wno-unused-parameter"
+		)
+
+target_link_libraries(${XPLOT_LIBRARY} m)
+## libplot End ##
+
+
+add_executable(exampleWatch plot/exampleWatch.cpp)
+target_include_directories(exampleWatch PRIVATE  "${XPLOT_INCLUDE_DIRS}" "${JSONCPP_INCLUDE_DIRS}")
+target_link_libraries(exampleWatch ${XPLOT_LIBRARY} ${PROJECT_NAME})

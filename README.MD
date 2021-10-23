@@ -1,17 +1,22 @@
 ## Binance C++ API
 API Library for Binance Bitcoin Exchange.
 
-This version included updated versions of LibCurl, LibWebSockets, LibWolfSSL, and JsonCpp:
+This version included updated versions of LibCurl, LibWebSockets, LibWolfSSL, JsonCpp and Libplot:
 
 Thread safety : Lag free : Support multi-threads websockets connections and more..
+
+CommandLine Plotting: ./exampleWatch
+
+ ![](Screencast.gif)  ![](Screencast2.gif)
 
 ### Note:
 ```
 LibWebSockets and LibCurl use LibWolfSSL with a builtin CA-cert.
+libplot as standalone libXplot
 ```
 ### Prerequisites:
 ```
-sudo apt-get install build-essential cmake g++ libssl-dev
+sudo apt-get install build-essential cmake g++ gcc libssl-dev
 ```
 
 ### Building:
@@ -48,3 +53,11 @@ Thread 2 finished in->1227:ms
 ~~~
 ~~~
 ```
+
+#
+thanks
+
+original libbinance-cxx-api from https://github.com/dmikushin/binance-cxx-api 
+
+original Libplot from  https://github.com/annacrombie/plot
+#
