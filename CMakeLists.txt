@@ -165,3 +165,7 @@ target_link_libraries(${XPLOT_LIBRARY} m)
 add_executable(exampleWatch plot/exampleWatch.cpp)
 target_include_directories(exampleWatch PRIVATE  "${XPLOT_INCLUDE_DIRS}" "${JSONCPP_INCLUDE_DIRS}")
 target_link_libraries(exampleWatch ${XPLOT_LIBRARY} ${PROJECT_NAME})
+
+add_executable(exampleWatchThreads plot/exampleWatchThreads.cpp)
+target_include_directories(exampleWatchThreads PRIVATE  "${XPLOT_INCLUDE_DIRS}" "${JSONCPP_INCLUDE_DIRS}")
+target_link_libraries(exampleWatchThreads ${XPLOT_LIBRARY} ${PROJECT_NAME})

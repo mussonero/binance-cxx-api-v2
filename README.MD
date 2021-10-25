@@ -7,7 +7,11 @@ Thread safety : Lag free : Support multi-threads websockets connections and more
 
 CommandLine Plotting: ./exampleWatch
 
- ![](Screencast.gif)  ![](Screencast2.gif)
+![](Screencast.gif)![](Screencast2.gif)
+
+CommandLine Plotting: ./exampleWatchThreads
+
+![](Screencast3.gif)![](Screencast4.gif)
 
 ### Note:
 ```
