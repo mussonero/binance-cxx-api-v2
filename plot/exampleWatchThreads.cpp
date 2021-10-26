@@ -39,8 +39,8 @@ struct miniTicker_context_2 {
   double v ,q ,h ,l, o, c;
   string chart_name, description;
 };
-static struct miniTicker_context_1 candle_context_1 = {.chart_name = "bitcoin:BNBUSDT", .description = "ohlc4:avg24:sma9"};
-static struct miniTicker_context_2 candle_context_2 = {.chart_name = "bitcoin:BNBBUSD", .description = "ohlc4:avg24:sma9"};
+static struct miniTicker_context_1 candle_context_1 = {.chart_name = "bitcoin:BNBUSDT", .description = "ohlc4:avg30:sma15:ema25"};
+static struct miniTicker_context_2 candle_context_2 = {.chart_name = "bitcoin:BNBBUSD", .description = "ohlc4:avg30:sma15:ema25"};
 
 static uint32_t
 get_candle_1(void *_ctx, double *out, uint32_t out_max) {
@@ -148,7 +148,7 @@ animate_plot(struct plot *p, char *buf, uint32_t bufsize, long ms,
   };
 
   do_esc(esc_curs_hide);
-  if(p->depth == 4){// test, need to find batter way
+  if(p->depth > 6){// test, need to find batter way
     do_esc(esc_curs_down, height);
   }
 
@@ -159,7 +159,7 @@ animate_plot(struct plot *p, char *buf, uint32_t bufsize, long ms,
     }
     plot_string(p, buf, bufsize);
     if (*buf) {
-      if(p->depth == 4){// test, need to find batter way
+      if(p->depth > 6){// test, need to find batter way
         //do_esc(esc_curs_back, p->width);
         do_esc(esc_curs_up, height);
         fputs(buf, stdout);
@@ -189,7 +189,7 @@ void *fetch_ws_candle(void *) {
 void *chart_1(void *) {
   static struct plot_static_memory mem = {0};
   struct plot *p = &mem.plot;
-  plot_init(p, mem.canvas, mem.data_buf, mem.pd, 24, 80, /*MAX_DATASETS*/2);
+  plot_init(p, mem.canvas, mem.data_buf, mem.pd, 24, 80, /*MAX_DATASETS*/6);
 
   p->y_label.side = plot_label_side::plot_label_side_both;
   p->x_label.side = plot_label_side::plot_label_side_bottom;
@@ -197,17 +197,28 @@ void *chart_1(void *) {
   p->x_label.mod = 3;
 
   plot_dataset_init(p->data, plot_color_black, mem.default_pipeline, MAX_PIPELINE_ELEMENTS, NULL, NULL);
+  /*OHLC4 line*/
+  {
+    plot_add_dataset(p, plot_color_brwhite, &mem.pipeline_elems[p->datasets * MAX_PIPELINE_ELEMENTS], MAX_PIPELINE_ELEMENTS, get_candle_1, &candle_context_1);
+  }
   /*SMA line*/
   {
     plot_add_dataset(p, plot_color_green, &mem.pipeline_elems[p->datasets * MAX_PIPELINE_ELEMENTS], MAX_PIPELINE_ELEMENTS, get_candle_1, &candle_context_1);
-    int32_t sma = 9;
+    int32_t sma = 15;
     void *ctx_sma = &sma;
     plot_pipeline_append(&p->data[p->datasets - 1], plot_data_proc_type::data_proc_sma, ctx_sma, sizeof(sma));
+  }
+  /*EMA line*/
+  {
+    plot_add_dataset(p, plot_color_red, &mem.pipeline_elems[p->datasets * MAX_PIPELINE_ELEMENTS], MAX_PIPELINE_ELEMENTS, get_candle_1, &candle_context_1);
+    int32_t ema = 25;
+    void *ctx_ema = &ema;
+    plot_pipeline_append(&p->data[p->datasets - 1], plot_data_proc_type::data_proc_ema, ctx_ema, sizeof(ema));
   }
   /*AVG line*/
   {
     plot_add_dataset(p, plot_color_yellow, &mem.pipeline_elems[p->datasets * MAX_PIPELINE_ELEMENTS], MAX_PIPELINE_ELEMENTS, get_candle_1, &candle_context_1);
-    int32_t avg = 24;
+    int32_t avg = 30;
     void *ctx_avg = &avg;
     plot_pipeline_append(&p->data[p->datasets - 1], plot_data_proc_type::data_proc_avg, ctx_avg, sizeof(avg));
   }
@@ -221,7 +232,7 @@ void *chart_1(void *) {
 void *chart_2(void *) {
   static struct plot_static_memory mem = {0};
   struct plot *p = &mem.plot;
-  plot_init(p, mem.canvas, mem.data_buf, mem.pd, 24, 80, /*MAX_DATASETS*/4);
+  plot_init(p, mem.canvas, mem.data_buf, mem.pd, 24, 80, /*MAX_DATASETS*/8);
 
   p->y_label.side = plot_label_side::plot_label_side_both;
   p->x_label.side = plot_label_side::plot_label_side_bottom;
@@ -229,19 +240,34 @@ void *chart_2(void *) {
   p->x_label.mod = 3;
 
   plot_dataset_init(p->data, plot_color_black, mem.default_pipeline, MAX_PIPELINE_ELEMENTS, NULL, NULL);
+  /*OHLC4 line*/
+  {
+    plot_add_dataset(p, plot_color_brwhite, &mem.pipeline_elems[p->datasets * MAX_PIPELINE_ELEMENTS], MAX_PIPELINE_ELEMENTS, get_candle_2, &candle_context_2);
+  }
   /*SMA line*/
   {
-    plot_add_dataset(p, plot_color_red, &mem.pipeline_elems[p->datasets * MAX_PIPELINE_ELEMENTS], MAX_PIPELINE_ELEMENTS, get_candle_2, &candle_context_2);
-    int32_t sma = 9;
+    plot_add_dataset(p, plot_color_blue, &mem.pipeline_elems[p->datasets * MAX_PIPELINE_ELEMENTS], MAX_PIPELINE_ELEMENTS, get_candle_2, &candle_context_2);
+    int32_t sma = 15;
     void *ctx_sma = &sma;
     plot_pipeline_append(&p->data[p->datasets - 1], plot_data_proc_type::data_proc_sma, ctx_sma, sizeof(sma));
+  }
+  /*EMA line*/
+  {
+    plot_add_dataset(p, plot_color_magenta, &mem.pipeline_elems[p->datasets * MAX_PIPELINE_ELEMENTS], MAX_PIPELINE_ELEMENTS, get_candle_2, &candle_context_2);
+    int32_t ema = 25;
+    void *ctx_ema = &ema;
+    plot_pipeline_append(&p->data[p->datasets - 1], plot_data_proc_type::data_proc_ema, ctx_ema, sizeof(ema));
   }
   /*AVG line*/
   {
     plot_add_dataset(p, plot_color_cyan, &mem.pipeline_elems[p->datasets * MAX_PIPELINE_ELEMENTS], MAX_PIPELINE_ELEMENTS, get_candle_2, &candle_context_2);
-    int32_t avg = 24;
+    int32_t avg = 30;
     void *ctx_avg = &avg;
     plot_pipeline_append(&p->data[p->datasets - 1], plot_data_proc_type::data_proc_avg, ctx_avg, sizeof(avg));
+  }
+  {
+    char *charset = "  ╔║╚╠╗═╦╝╣╩╬";
+    plot_set_custom_charset(p, &charset[1], strlen(charset));
   }
 
   {

@@ -45,6 +45,60 @@ avg_init(void *proc_ctx, void *opts, uint32_t opts_size)
 /*
  * this struct (and all pipeline ctx structs must be <= PLOT_PIPLEINE_CTX_SIZE
  */
+struct ema_proc_ctx {
+  uint32_t n_len;
+  uint32_t ema_sumlen;
+  double ema_sum;
+};
+
+static void
+ema_proc(struct plot_dbuf *out, struct plot_dbuf *in, void *_ctx) {
+  struct ema_proc_ctx *ctx = _ctx;
+  uint32_t tmpi;
+  double alpha = 2 / (double) (ctx->n_len + 1);
+  for (tmpi = 0; ctx->ema_sumlen < ctx->n_len && tmpi < in->len; ++tmpi, ++ctx->ema_sumlen) {
+    ctx->ema_sum += in->dat[tmpi];
+
+    if (ctx->ema_sumlen >= ctx->n_len / 2) {
+      out->dat[out->len] = ctx->ema_sum / (double) ctx->ema_sumlen;
+      if (++out->len > PLOT_DBUF_SIZE) {
+        return;
+      }
+    }
+  }
+
+  ctx->ema_sum = in->dat[in->i + ctx->n_len];
+
+  for (; in->i + ctx->n_len < in->len; ++in->i) {
+    ctx->ema_sum = (alpha* (in->dat[in->i] - ctx->ema_sum)) + ctx->ema_sum;
+    out->dat[out->len] = (out->dat[out->len] + ctx->ema_sum)/2;
+    if (++out->len > PLOT_DBUF_SIZE) {
+      break;
+    }
+  }
+  return;
+}
+
+static bool
+ema_init(void *proc_ctx, void *opts, uint32_t opts_size) {
+  assert(opts_size == sizeof(uint32_t));
+
+  uint32_t *n = opts;
+  struct ema_proc_ctx *ctx = proc_ctx;
+
+  if (*n == 0 || *n >= PLOT_DBUF_SIZE) {
+    fprintf(stderr, "invalid argument: %d\n", *n);
+    return false;
+  } else if (!(*n & 1)) {
+    fprintf(stderr, "ema argument must be odd\n");
+    return false;
+  }
+
+  ctx->n_len = *n;
+
+  return true;
+}
+
 struct sma_proc_ctx {
 	uint32_t n;
 	uint32_t sumlen;
@@ -182,4 +236,5 @@ const struct dproc_registry_elem dproc_registry[data_proc_type_count] = {
 	[data_proc_sma] = { sma_proc, sma_init },
 	[data_proc_cma] = { cma_proc, cma_init },
 	[data_proc_roc] = { roc_proc, roc_init },
+    [data_proc_ema] = { ema_proc, ema_init },
 };

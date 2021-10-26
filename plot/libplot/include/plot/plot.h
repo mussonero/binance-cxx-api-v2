@@ -2,7 +2,7 @@
 #define PLOT_H
 
 #ifdef __cplusplus
-    extern "C" {
+extern "C" {
 #endif
 
 #include <stdbool.h>
@@ -57,7 +57,8 @@ enum plot_data_proc_type {
 	data_proc_sma,
 	data_proc_cma,
 	data_proc_roc,
-	data_proc_type_count,
+    data_proc_ema,
+    data_proc_type_count,
 };
 
 struct plot_dbuf;
