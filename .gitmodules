@@ -10,3 +10,6 @@
 [submodule "external_libs/wolfssl"]
 	path = external_libs/wolfssl
 	url = https://github.com/wolfSSL/wolfssl.git
+[submodule "external_libs/libuv"]
+	path = external_libs/libuv
+	url = https://github.com/libuv/libuv.git

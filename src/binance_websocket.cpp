@@ -4,13 +4,17 @@
 
 	C++ library for Binance API.
 */
-
+#include <libwebsockets.h>
 #include "binance_websocket.h"
 #include "binance_logger.h"
 
 #include <atomic>
-#include <libwebsockets.h>
 #include <csignal>
+
+#if defined(LWS_WITH_LIBUV_INTERNAL)
+#include <uv.h>
+#endif
+
 
 using namespace binance;
 using namespace std;
@@ -43,6 +47,7 @@ static const char * const sslRootsCA =
 #endif
 
 static struct lws_context *context;
+static struct lws_context_creation_info info;
 static atomic<int> protocol_init(0);
 static atomic<int> lws_service_cancelled(0);
 static int force_create_ccinfo(const std::string &path);
@@ -95,6 +100,8 @@ struct lws_protocols protocols[] =
             .callback = event_cb,
             .per_session_data_size = sizeof(struct endpoint_connection),
             .rx_buffer_size = 128 * 1024,
+            .id = 0,
+            .tx_packet_size = 128 * 1024
         },
 
         {nullptr, nullptr, 0, 0}
@@ -102,7 +109,8 @@ struct lws_protocols protocols[] =
 
 static int event_cb(lws *wsi, enum lws_callback_reasons reason, void *user, void *in, size_t len) {
 
-  auto *current_data = static_cast< endpoint_connection *>(user);
+  //struct endpoint_connection *current_data_old = static_cast< endpoint_connection *>(user);
+  struct endpoint_connection *current_session = static_cast<endpoint_connection *>(lws_get_opaque_user_data(wsi));
 
   switch (reason) {
 
@@ -114,14 +122,14 @@ static int event_cb(lws *wsi, enum lws_callback_reasons reason, void *user, void
     break;
 
   case LWS_CALLBACK_WSI_CREATE:
-    if(!lws_service_cancelled){
-      const std::string ws_path = current_data->ws_path;
-      if (!ws_path.empty() && ws_path.find("/ws/") != std::string::npos && endpoints_prop.find(ws_path) != endpoints_prop.end()) {
-        if(!endpoints_prop.at(ws_path).close_conn.load()){
+    if(!lws_service_cancelled && current_session){
+      const std::string ws_path = current_session->ws_path;
+      if (!ws_path.empty() && ws_path.find("/ws/") != std::string::npos) {
+        if(!current_session->close_conn.load()){
           pthread_mutex_lock(&lock_concurrent);
-          endpoints_prop.at(ws_path).wsi = wsi;
-          lwsl_user("%s: create wsi for current_data#:%s ws_path::%s\n",
-                    __func__, ws_path.c_str(), endpoints_prop.at(ws_path).ws_path.c_str());
+          current_session->wsi = wsi;
+          lwsl_user("%s: create wsi for current_session#:%s ws_path::%s\n",
+                    __func__, ws_path.c_str(), ws_path.c_str());
           pthread_mutex_unlock(&lock_concurrent);
         }
       }
@@ -129,15 +137,15 @@ static int event_cb(lws *wsi, enum lws_callback_reasons reason, void *user, void
     break;
 
   case LWS_CALLBACK_CLIENT_ESTABLISHED:
-    if(!lws_service_cancelled){
-      const std::string ws_path = current_data->ws_path;
-      if (!ws_path.empty() && ws_path.find("/ws/") != std::string::npos && endpoints_prop.find(ws_path) != endpoints_prop.end()) {
-        if(!endpoints_prop.at(ws_path).close_conn.load()){
+    if(!lws_service_cancelled && current_session){
+      const std::string ws_path = current_session->ws_path;
+      if (!ws_path.empty() && ws_path.find("/ws/") != std::string::npos) {
+        if(!current_session->close_conn.load()){
           pthread_mutex_lock(&lock_concurrent);
           lws_callback_on_writable(wsi);
-          endpoints_prop.at(ws_path).wsi = wsi;
-          lwsl_user("%s: connection established with success current_data#:%s ws_path::%s\n",
-                    __func__, ws_path.c_str(), endpoints_prop.at(ws_path).ws_path.c_str());
+          current_session->wsi = wsi;
+          lwsl_user("%s: connection established with success current_session#:%s ws_path::%s\n",
+                    __func__, ws_path.c_str(), ws_path.c_str());
           pthread_mutex_unlock(&lock_concurrent);
         }
       }
@@ -146,10 +154,10 @@ static int event_cb(lws *wsi, enum lws_callback_reasons reason, void *user, void
     break;
 
   case LWS_CALLBACK_CLIENT_RECEIVE:
-    if(!lws_service_cancelled){
-      const std::string ws_path = current_data->ws_path;
-      if (!ws_path.empty() && ws_path.find("/ws/") != std::string::npos && endpoints_prop.find(ws_path) != endpoints_prop.end()) {
-        if(!endpoints_prop.at(ws_path).close_conn.load()){
+    if(!lws_service_cancelled && current_session){
+      const std::string ws_path = current_session->ws_path;
+      if (!ws_path.empty() && ws_path.find("/ws/") != std::string::npos) {
+        if(!current_session->close_conn.load()){
           pthread_mutex_lock(&lock_concurrent);
           string str_result = string(reinterpret_cast<const char *>(in), len);
           Json::Value json_result;
@@ -164,8 +172,8 @@ static int event_cb(lws *wsi, enum lws_callback_reasons reason, void *user, void
             pthread_mutex_unlock(&lock_concurrent);
             break;
           }
-          endpoints_prop.at(ws_path).json_cb(json_result);
-          endpoints_prop.at(ws_path).retry_count = 0;
+          current_session->json_cb(json_result);
+          current_session->retry_count = 0;
           json_result.clear();
           pthread_mutex_unlock(&lock_concurrent);
         }
@@ -193,29 +201,27 @@ static int event_cb(lws *wsi, enum lws_callback_reasons reason, void *user, void
                in ? (char *) in : "(null)");
     }
 
-    if(!lws_service_cancelled){
-      const std::string ws_path = current_data->ws_path;
-      if (!ws_path.empty() && ws_path.find("/ws/") != std::string::npos && endpoints_prop.find(ws_path) != endpoints_prop.end()) {
-        if (endpoints_prop.at(ws_path).close_conn.load() && !endpoints_prop.at(ws_path).creating_conn.load()) {
+    if(!lws_service_cancelled && current_session){
+      const std::string ws_path = current_session->ws_path;
+      if (!ws_path.empty() && ws_path.find("/ws/") != std::string::npos) {
+        if (current_session->close_conn.load() && !current_session->creating_conn.load()) {
           pthread_mutex_lock(&lock_concurrent);
-          endpoints_prop.at(ws_path).wsi = nullptr;
-          endpoints_prop.at(ws_path).ws_path.clear();
-          lws_set_opaque_user_data(wsi, &endpoints_prop.at(ws_path));
-          //endpoints_prop.erase(ws_path);
+          current_session->wsi = nullptr;
+          current_session->ws_path.clear();
+          lws_set_opaque_user_data(wsi, nullptr);
           lwsl_err("reason:%d  deleted: %s : %s\n", reason,
                    in ? (char *) in : "(null)", ws_path.c_str());
           pthread_mutex_unlock(&lock_concurrent);
-        } else if(!endpoints_prop.at(ws_path).close_conn.load() && !endpoints_prop.at(ws_path).creating_conn.load()){
+        } else if(!current_session->close_conn.load() && !current_session->creating_conn.load()){
           pthread_mutex_lock(&lock_concurrent);
-          endpoints_prop.at(ws_path).retry_count++;
-          endpoints_prop.at(ws_path).wsi = nullptr;
+          current_session->retry_count++;
+          current_session->wsi = nullptr;
           pthread_mutex_unlock(&lock_concurrent);
-          if (endpoints_prop.at(ws_path).retry_count > (LWS_ARRAY_SIZE(backoff_ms)) || force_create_ccinfo(ws_path) ) {
+          if (current_session->retry_count > (LWS_ARRAY_SIZE(backoff_ms)) || force_create_ccinfo(ws_path) ) {
             pthread_mutex_lock(&lock_concurrent);
-            endpoints_prop.at(ws_path).wsi = nullptr;
-            endpoints_prop.at(ws_path).ws_path.clear();
-            lws_set_opaque_user_data(wsi, &endpoints_prop.at(ws_path));
-            //endpoints_prop.erase(ws_path);
+            current_session->wsi = nullptr;
+            current_session->ws_path.clear();
+            lws_set_opaque_user_data(wsi, nullptr);
             lws_cancel_service(lws_get_context(wsi));
             atomic_store(&lws_service_cancelled, 1);
             pthread_mutex_unlock(&lock_concurrent);
@@ -254,10 +260,10 @@ static int event_cb(lws *wsi, enum lws_callback_reasons reason, void *user, void
 
 
 static void sigint_handler(int sig) {
-  Logger::write_log("<binance::Websocket::sigint_handler> Interactive attention signal : %d\n", sig);
   pthread_mutex_lock(&lock_concurrent);
   atomic_store(&lws_service_cancelled, 1);
   pthread_mutex_unlock(&lock_concurrent);
+  Logger::write_log("<binance::Websocket::sigint_handler> Interactive attention signal : %d\n", sig);
 }
 
 /* do not use pthread_mutex_lock on force_create_ccinfo*/
@@ -288,7 +294,8 @@ static int force_create_ccinfo(const std::string &path) {
   ccinfo.protocol = protocols[0].name;
   ccinfo.local_protocol_name = protocols[0].name;
   ccinfo.retry_and_idle_policy = &retry;
-  ccinfo.userdata = &endpoints_prop.at(path);
+  ccinfo.opaque_user_data = &endpoints_prop.at(path);
+  //ccinfo.userdata = &endpoints_prop.at(path);
   ccinfo.pwsi = &endpoints_prop.at(path).wsi;
 
   if (!lws_client_connect_via_info(&ccinfo)) {
@@ -344,18 +351,29 @@ void binance::Websocket::init() {
   pthread_mutex_init(&lock_concurrent, nullptr);
   endpoints_prop.clear();
 
-  struct lws_context_creation_info info{};
-  signal(SIGINT, sigint_handler);
+  //struct lws_context_creation_info info{};
+
   memset(&info, 0, sizeof(info));
-  // This option is needed here to imply LWS_SERVER_OPTION_DO_SSL_GLOBAL_INIT
-  // option, which must be set on newer versions of SSL_Libs.
-  info.options = LWS_SERVER_OPTION_DO_SSL_GLOBAL_INIT | LWS_SERVER_OPTION_REQUIRE_VALID_OPENSSL_CLIENT_CERT;
+#if defined(LWS_WITH_LIBUV_INTERNAL)
+  info.foreign_loops = (void *[]){uv_default_loop()};
+#else
+  signal(SIGINT, sigint_handler);
+#endif
   info.port = CONTEXT_PORT_NO_LISTEN;
+  info.protocols = protocols;
   info.gid = -1;
   info.uid = -1;
-  info.protocols = protocols;
   info.fd_limit_per_thread = 1024;
   info.max_http_header_pool = 1024;
+  // This option is needed here to imply LWS_SERVER_OPTION_DO_SSL_GLOBAL_INIT
+  // option, which must be set on newer versions of SSL_Libs.
+  info.options = LWS_SERVER_OPTION_DO_SSL_GLOBAL_INIT | LWS_SERVER_OPTION_REQUIRE_VALID_OPENSSL_CLIENT_CERT|LWS_SERVER_OPTION_LIBUV;
+
+#if defined(LWS_WITH_LIBUV_INTERNAL)
+  info.options |= LWS_SERVER_OPTION_LIBUV;
+  info.pcontext = &context;
+#endif
+
 #if defined(LWS_WITH_MBEDTLS) || defined(LWS_WITH_WOLFSSL)
    /* MbedTLS / WolfSSL, load the certificate. */
   info.client_ssl_ca_filepath = nullptr;
@@ -371,7 +389,7 @@ void binance::Websocket::init() {
     return;
   } else {
     atomic_store(&lws_service_cancelled, 0);
-    lws_service(context, 0);
+    //lws_service(context, 0);
     while (!protocol_init.load()){
       if(protocol_init.load())
         break;
@@ -443,10 +461,11 @@ void binance::Websocket::enter_event_loop(const std::chrono::hours &hours) {
   auto start = std::chrono::steady_clock::now();
   auto end = start + hours;
   auto n = 0;
-  lwsl_user("%s: INIT\n", __func__);
+  lwsl_info("%s: INIT\n", __func__);
   do {
     try {
       n = lws_service(context, 500);
+      if(lws_service_cancelled)break;
     } catch (exception &e) {
       lwsl_err("%s:::%s\n",
                __func__, e.what());
@@ -465,4 +484,5 @@ void binance::Websocket::enter_event_loop(const std::chrono::hours &hours) {
   /* extra check if not null */
   pthread_mutex_destroy(&lock_concurrent);
   endpoints_prop.clear();
+  lwsl_info("%s: ENDED\n", __func__);
 }

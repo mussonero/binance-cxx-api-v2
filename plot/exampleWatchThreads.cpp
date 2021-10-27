@@ -94,9 +94,8 @@ static atomic<int> loop(1);
 
 static void
 handle_sigint(int sig) {
-  Logger::write_log("<handle_sigint:%d\n", sig);
+  atomic_store(&loop, 0);
   Websocket::kill_all();
-  loop.store(0);
 }
 
 enum esc_seq {
@@ -127,7 +126,7 @@ do_esc(enum esc_seq es, ...) {
 
 bool
 follow_cb(struct plot *p) {
-  if (plot_fetch(p, 0) && loop.load()) {
+  if (loop.load() && plot_fetch(p, 0)) {
     return true;
   }
   return false;
@@ -182,7 +181,7 @@ void *fetch_ws_candle(void *) {
   Websocket::connect_endpoint(ws_klines_onData_1, "/ws/bnbusdt@miniTicker");
   Websocket::connect_endpoint(ws_klines_onData_2, "/ws/bnbbusd@miniTicker");
   Websocket::enter_event_loop();
-  loop.store(0);
+  atomic_store(&loop, 0);
   return NULL;
 }
 

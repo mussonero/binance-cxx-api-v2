@@ -7,7 +7,7 @@ set(PROJECT_VERSION_MINOR 2)
 set(PROJECT_VERSION_PATCH 1)
 
 set(CMAKE_CXX_STANDARD 11)
-add_definitions(-DCMAKE_BUILD_TYPE=RELEASE -DCMAKE_DEBUG_POSTFIX -DNDEBUG -DWC_NO_HARDEN -Wno-varargs)
+add_definitions(-DCMAKE_BUILD_TYPE=RELEASE -DCMAKE_DEBUG_POSTFIX -DNDEBUG -DWC_NO_HARDEN -Wno-varargs -Wno-writable-strings -Wno-c99-designator])
 # Search path for CMake include files.
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 
@@ -34,6 +34,23 @@ target_compile_definitions(wolfssl PRIVATE
 		WOLFSSL_ASYNC_THREADS
 		)
 ## wolfssl End ##
+
+## LibUV Start ##
+set(BUILD_TESTING OFF CACHE BOOL "")
+set(LIBUV_BUILD_TESTS OFF CACHE BOOL "")
+add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/external_libs/libuv EXCLUDE_FROM_ALL)
+add_library(uv_a::uv_a INTERFACE IMPORTED)
+set_target_properties(uv_a::uv_a PROPERTIES INTERFACE_INCLUDE_DIRECTORIES
+		"${CMAKE_CURRENT_SOURCE_DIR}/external_libs/libuv")
+target_link_libraries(uv_a::uv_a INTERFACE uv_a)
+set(LIBUV_LIBRARIES uv_a::uv_a)
+set(LIBUV_INCLUDE_DIRS
+		"${CMAKE_CURRENT_SOURCE_DIR}/external_libs/libuv/include")
+set_property(TARGET uv_a PROPERTY POSITION_INDEPENDENT_CODE ON)
+target_compile_definitions(uv_a PRIVATE
+		BUILD_STATIC_LIBS
+		)
+## LibUV End ##
 
 ## LibCurl Start ##
 option(BUILD_CURL_EXE "" OFF)
@@ -67,6 +84,9 @@ set(LWS_WOLFSSL_INCLUDE_DIRS "${WOLFSSL_INCLUDE_DIR}" CACHE PATH "Override optio
 set(LWS_WOLFSSL_LIBRARIES "${WOLFSSL_LIBRARY}" CACHE PATH "Override option" FORCE)
 option(LWS_WITH_SYS_ASYNC_DNS "" OFF)
 option(LWS_WITH_WOLFSSL "" ON)
+option(LWS_WITH_LIBUV "" ON)
+option(LWS_WITH_LIBUV_INTERNAL "" ON)
+option(LWS_WITH_EVLIB_PLUGINS "" OFF)
 option(LWS_IPV6 "" OFF)
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/external_libs/libwebsockets EXCLUDE_FROM_ALL)
 set_property(TARGET websockets PROPERTY POSITION_INDEPENDENT_CODE ON)
@@ -102,6 +122,7 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include)
 
 add_library(${PROJECT_NAME} SHARED ${LIBRARY_SRC})
 target_include_directories(${PROJECT_NAME} PRIVATE "${WOLFSSL_INCLUDE_DIR}")
+target_include_directories(${PROJECT_NAME} PRIVATE "${LIBUV_INCLUDE_DIRS}")
 target_include_directories(${PROJECT_NAME} PRIVATE "${LIBWEBSOCKETS_INCLUDE_DIRS}")
 target_include_directories(${PROJECT_NAME} PRIVATE "${JSONCPP_INCLUDE_DIRS}")
 target_include_directories(${PROJECT_NAME} PRIVATE "${CURL_INCLUDE_DIRS}")
@@ -117,7 +138,7 @@ target_compile_definitions(${PROJECT_NAME} PRIVATE
 		LWS_WITH_WOLFSSL
 		)
 
-target_link_libraries(${PROJECT_NAME} ${JSONCPP_LIBRARIES} ${WOLFSSL_LIBRARY} ${CURL_LIBRARIES} ${LIBWEBSOCKETS_LIBRARIES} )
+target_link_libraries(${PROJECT_NAME} ${LIBUV_LIBRARIES} ${JSONCPP_LIBRARIES} ${WOLFSSL_LIBRARY} ${CURL_LIBRARIES} ${LIBWEBSOCKETS_LIBRARIES} )
 ## binance-cxx-api-v2.1 End ##
 
 add_executable(example example.cpp)
