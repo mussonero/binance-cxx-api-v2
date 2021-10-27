@@ -7,7 +7,7 @@ set(PROJECT_VERSION_MINOR 2)
 set(PROJECT_VERSION_PATCH 1)
 
 set(CMAKE_CXX_STANDARD 11)
-add_definitions(-DCMAKE_BUILD_TYPE=RELEASE -DCMAKE_DEBUG_POSTFIX -DNDEBUG -DWC_NO_HARDEN -Wno-varargs -Wno-writable-strings -Wno-c99-designator])
+add_definitions(-DCMAKE_BUILD_TYPE=RELEASE -DCMAKE_DEBUG_POSTFIX -DNDEBUG -DWC_NO_HARDEN -Wno-varargs -Wno-writable-strings -Wno-gnu-designator)
 # Search path for CMake include files.
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 

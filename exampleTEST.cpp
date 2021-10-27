@@ -252,7 +252,7 @@ void * Thread_2(void * id) {
   sleep(1);
   Websocket::connect_endpoint(ws_klines_onData, "/ws/ethbusd@depth5@1000ms");
 
-  sleep(60*30);
+  sleep(60*1);
   cout << "kill_all" << endl;
   sleep(5);
   Websocket::kill_all();
