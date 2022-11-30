@@ -20,7 +20,7 @@ libplot as standalone libXplot
 ```
 ### Prerequisites:
 ```
-sudo apt-get install build-essential cmake g++ gcc libssl-dev
+sudo apt-get install build-essential cmake g++ gcc libssl-dev clang
 ```
 
 ### Building:
