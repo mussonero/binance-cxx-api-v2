@@ -30,6 +30,7 @@ git clone --recurse-submodules https://github.com/mussonero/binance-cxx-api-v2.g
 cd binance-cxx-api-v2
 mkdir build
 cd build/
+export CC=/usr/bin/clang && export CXX=/usr/bin/clang++
 cmake ..
 make
 ./bin/httpPerformanceTest | grep ":ms"
